@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>내 캘린더</title>
+<link href="https://fonts.googleapis.com/css2?family=Gmarket+Sans:wght@300;500;700&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #f7f5f0;
+  --surface: #ffffff;
+  --border: #e8e4dc;
+  --border-hover: #cfc8bb;
+  --text: #1a1714;
+  --text-2: #6b6560;
+  --text-3: #aaa49c;
+  --accent: #2d2a26;
+  --lunch-bg: #fff8ee;
+  --lunch-dot: #e8940a;
+  --lunch-text: #7a4d05;
+  --dinner-bg: #f0eeff;
+  --dinner-dot: #6c5ce7;
+  --dinner-text: #3d2fb0;
+  --other-bg: #edfaf4;
+  --other-dot: #00b87a;
+  --other-text: #056b47;
+  --friend-bg: #f0f0f0;
+  --friend-text: #777;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app { max-width: 760px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+
+/* ── LOCK SCREEN ── */
+.lock-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 80vh;
+}
+.lock-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  width: 100%; max-width: 360px;
+  text-align: center;
+}
+.lock-icon {
+  width: 48px; height: 48px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.25rem;
+  font-size: 20px;
+}
+.lock-card h1 {
+  font-family: 'Gmarket Sans', sans-serif;
+  font-size: 22px; font-weight: 700;
+  margin-bottom: .4rem; letter-spacing: -.5px;
+}
+.lock-card p { font-size: 13px; color: var(--text-2); margin-bottom: 1.75rem; line-height: 1.6; }
+.field { position: relative; margin-bottom: .75rem; }
+.field input {
+  width: 100%; padding: 11px 14px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 14px; font-family: inherit;
+  background: var(--bg); color: var(--text);
+  outline: none; transition: border-color .15s;
+}
+.field input:focus { border-color: var(--accent); }
+.err-msg { font-size: 12px; color: #c0392b; margin-bottom: .75rem; display: none; }
+.btn-primary {
+  width: 100%; padding: 11px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 14px; font-family: 'Gmarket Sans', sans-serif;
+  font-weight: 500; cursor: pointer; letter-spacing: .5px;
+  transition: opacity .15s;
+}
+.btn-primary:hover { opacity: .85; }
+
+/* ── HEADER ── */
+.cal-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;
+}
+.cal-header h1 {
+  font-family: 'Gmarket Sans', sans-serif;
+  font-size: 26px; font-weight: 700;
+  letter-spacing: -1px; color: var(--text);
+}
+.header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* nav */
+.nav { display: flex; align-items: center; gap: 8px; }
+.nav button {
+  width: 30px; height: 30px;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--surface); color: var(--text-2);
+  cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, color .15s;
+}
+.nav button:hover { border-color: var(--border-hover); color: var(--text); }
+.month-label {
+  font-family: 'Gmarket Sans', sans-serif;
+  font-size: 15px; font-weight: 500;
+  min-width: 90px; text-align: center;
+}
+
+/* mode toggle */
+.mode-toggle {
+  display: flex; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); overflow: hidden;
+}
+.mode-btn {
+  padding: 6px 14px; font-size: 12px; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; background: none; border: none;
+  color: var(--text-2); transition: all .12s;
+}
+.mode-btn.active { background: var(--accent); color: #fff; }
+
+.icon-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text-2);
+  cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s; text-decoration: none;
+}
+.icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
+
+/* ── CALENDAR ── */
+.day-headers {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px; margin-bottom: 4px;
+}
+.day-hd {
+  text-align: center; font-size: 11px;
+  color: var(--text-3); padding: 4px 0; font-weight: 500;
+  letter-spacing: .5px;
+}
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day {
+  min-height: 76px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px; cursor: pointer;
+  background: var(--surface);
+  position: relative; transition: border-color .15s;
+  overflow: hidden;
+}
+.cal-day:hover:not(.other-month) { border-color: var(--border-hover); }
+.cal-day.other-month { opacity: .28; cursor: default; background: none; border-color: transparent; }
+.cal-day.today { border-color: var(--accent); }
+.cal-day.today .day-num {
+  background: var(--accent); color: #fff;
+  border-radius: 50%; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+}
+.day-num { font-size: 11px; color: var(--text-2); margin-bottom: 4px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: 500; }
+.add-hint {
+  position: absolute; bottom: 4px; right: 6px;
+  font-size: 10px; color: var(--text-3); opacity: 0; transition: opacity .12s;
+}
+.cal-day:hover:not(.other-month) .add-hint { opacity: 1; }
+
+/* pills */
+.pill {
+  font-size: 10px; padding: 2px 6px;
+  border-radius: 20px; margin-bottom: 2px;
+  display: flex; align-items: center; gap: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
+}
+.pill-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.pill.lunch { background: var(--lunch-bg); color: var(--lunch-text); }
+.pill.lunch .pill-dot { background: var(--lunch-dot); }
+.pill.dinner { background: var(--dinner-bg); color: var(--dinner-text); }
+.pill.dinner .pill-dot { background: var(--dinner-dot); }
+.pill.other { background: var(--other-bg); color: var(--other-text); }
+.pill.other .pill-dot { background: var(--other-dot); }
+.pill.friend { background: var(--friend-bg); color: var(--friend-text); justify-content: center; }
+.pill.more { opacity: .6; background: var(--bg); color: var(--text-3); font-size: 9px; }
+
+/* ── LEGEND ── */
+.legend {
+  display: flex; gap: 14px; margin-top: 1rem;
+  font-size: 12px; color: var(--text-2); flex-wrap: wrap;
+}
+.ldot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+.save-status { font-size: 11px; color: var(--text-3); text-align: right; margin-top: 6px; min-height: 14px; }
+
+/* ── MODAL BACKDROP ── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(26,23,20,.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 1rem;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.75rem 1.5rem;
+  width: 100%; max-width: 340px;
+  animation: modalIn .18s ease;
+}
+@keyframes modalIn { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal h3 {
+  font-family: 'Gmarket Sans', sans-serif;
+  font-size: 16px; font-weight: 700;
+  margin-bottom: 1rem; letter-spacing: -.3px;
+}
+.type-row { display: flex; gap: 6px; margin-bottom: .75rem; }
+.type-chip {
+  flex: 1; padding: 7px 0; font-size: 12px;
+  border-radius: var(--radius-sm); cursor: pointer;
+  text-align: center; border: 1px solid var(--border);
+  background: none; color: var(--text-2);
+  font-family: 'Noto Sans KR', sans-serif;
+  transition: all .12s;
+}
+.type-chip:hover { border-color: var(--border-hover); }
+.type-chip.sel-lunch { background: var(--lunch-bg); color: var(--lunch-text); border-color: var(--lunch-dot); }
+.type-chip.sel-dinner { background: var(--dinner-bg); color: var(--dinner-text); border-color: var(--dinner-dot); }
+.type-chip.sel-other { background: var(--other-bg); color: var(--other-text); border-color: var(--other-dot); }
+.modal input, .modal textarea {
+  width: 100%; padding: 9px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 13px; font-family: inherit;
+  background: var(--bg); color: var(--text);
+  outline: none; margin-bottom: .65rem; transition: border-color .15s;
+}
+.modal input:focus, .modal textarea:focus { border-color: var(--accent); }
+.modal textarea { height: 65px; resize: none; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: .75rem; }
+.btn-ghost {
+  padding: 7px 16px; font-size: 13px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: none; color: var(--text-2); cursor: pointer;
+  font-family: inherit; transition: border-color .15s;
+}
+.btn-ghost:hover { border-color: var(--border-hover); }
+.btn-dark {
+  padding: 7px 16px; font-size: 13px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  cursor: pointer; font-family: 'Gmarket Sans', sans-serif;
+  font-weight: 500; transition: opacity .15s;
+}
+.btn-dark:hover { opacity: .85; }
+
+.ev-list-section { margin-top: .85rem; border-top: 1px solid var(--border); padding-top: .7rem; }
+.ev-list-label { font-size: 11px; color: var(--text-3); margin-bottom: 6px; }
+.ev-item {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px; border-radius: var(--radius-sm);
+  margin-bottom: 3px; background: var(--bg);
+  font-size: 13px; gap: 6px;
+}
+.ev-item-left { display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden; }
+.ev-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-del {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-3); font-size: 15px; line-height: 1;
+  flex-shrink: 0; transition: color .12s;
+}
+.ev-del:hover { color: #c0392b; }
+
+/* ── SHARE MODAL ── */
+.share-card {
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: 16px;
+  padding: 2rem 1.75rem; width: 100%; max-width: 400px;
+  animation: modalIn .18s ease;
+}
+.share-card h2 {
+  font-family: 'Gmarket Sans', sans-serif;
+  font-size: 18px; font-weight: 700; margin-bottom: .4rem; letter-spacing: -.4px;
+}
+.share-card p { font-size: 13px; color: var(--text-2); margin-bottom: 1.25rem; line-height: 1.6; }
+.copy-row { display: flex; gap: 8px; }
+.copy-row input {
+  flex: 1; padding: 9px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 12px; background: var(--bg); color: var(--text-2);
+  font-family: inherit; outline: none;
+}
+.copy-row button {
+  padding: 0 16px; font-size: 13px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  cursor: pointer; font-family: 'Gmarket Sans', sans-serif;
+  white-space: nowrap; transition: opacity .15s;
+}
+.copy-row button:hover { opacity: .85; }
+.share-back {
+  width: 100%; margin-top: .85rem; padding: 9px;
+  background: none; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 13px;
+  color: var(--text-2); cursor: pointer; font-family: inherit;
+  transition: border-color .15s;
+}
+.share-back:hover { border-color: var(--border-hover); }
+
+/* ── FRIEND VIEW BANNER ── */
+.friend-banner {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: .75rem 1rem;
+  margin-bottom: 1.25rem; font-size: 13px;
+  color: var(--text-2); text-align: center;
+}
+
+@media (max-width: 500px) {
+  .cal-day { min-height: 58px; }
+  .day-num { font-size: 10px; }
+  .pill { font-size: 9px; padding: 1px 4px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+const STORAGE_KEY = 'mykal_events_v3';
+const PW_KEY = 'mykal_pw';
+const today = new Date();
+let cur = new Date(today.getFullYear(), today.getMonth(), 1);
+let mode = 'mine';
+let events = {};
+let pw = null;
+let selectedType = 'lunch';
+let saveTimer = null;
+let activeModal = null;
+
+const TYPE = {
+  lunch:  { label: '점심', dot: 'lunch' },
+  dinner: { label: '저녁', dot: 'dinner' },
+  other:  { label: '기타', dot: 'other' }
+};
+
+function dkey(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function loadData() {
+  try { events = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { events = {}; }
+  pw = localStorage.getItem(PW_KEY) || null;
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+  const el = document.getElementById('save-status');
+  if (el) { el.textContent = '저장됨'; clearTimeout(saveTimer); saveTimer = setTimeout(() => { el.textContent = ''; }, 2000); }
+}
+
+function savePw(p) { localStorage.setItem(PW_KEY, p); }
+
+function render() {
+  const isFriend = mode === 'friend';
+  const app = document.getElementById('app');
+
+  if (isFriend) {
+    app.innerHTML = friendViewHTML();
+  } else if (!window._unlocked) {
+    app.innerHTML = lockScreenHTML();
+    document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') handlePw(); });
+  } else {
+    app.innerHTML = calHTML();
+    document.getElementById('prev').onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth()-1, 1); renderCal(); };
+    document.getElementById('next').onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1); renderCal(); };
+    renderCal();
+  }
+}
+
+function lockScreenHTML() {
+  return `
+  <div class="lock-screen">
+    <div class="lock-card">
+      <div class="lock-icon">🔐</div>
+      <h1>내 캘린더</h1>
+      <p>비밀번호를 설정하거나 입력해서<br>캘린더를 시작하세요.</p>
+      <div class="field"><input type="password" id="pw-input" placeholder="비밀번호 입력" /></div>
+      <div class="err-msg" id="pw-err">비밀번호가 틀렸어요.</div>
+      <button class="btn-primary" onclick="handlePw()">시작하기</button>
+    </div>
+  </div>`;
+}
+
+function calHTML() {
+  return `
+  <div class="cal-header">
+    <h1>내 캘린더</h1>
+    <div class="header-right">
+      <div class="nav">
+        <button id="prev">&#8249;</button>
+        <span class="month-label" id="month-label"></span>
+        <button id="next">&#8250;</button>
+      </div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" onclick="setMode('mine')">내 캘린더</button>
+        <button class="mode-btn" onclick="setMode('friend')">친구 뷰</button>
+      </div>
+      <button class="icon-btn" onclick="showShare()" title="공유">🔗</button>
+      <button class="icon-btn" onclick="lock()" title="잠금">🔒</button>
+    </div>
+  </div>
+  <div class="day-headers">
+    ${['일','월','화','수','목','금','토'].map(d=>`<div class="day-hd">${d}</div>`).join('')}
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="legend">
+    <span><span class="ldot" style="background:var(--lunch-dot)"></span>점심</span>
+    <span><span class="ldot" style="background:var(--dinner-dot)"></span>저녁</span>
+    <span><span class="ldot" style="background:var(--other-dot)"></span>기타</span>
+  </div>
+  <div class="save-status" id="save-status"></div>`;
+}
+
+function friendViewHTML() {
+  const y = cur.getFullYear(), mo = cur.getMonth();
+  return `
+  <div class="cal-header">
+    <h1>캘린더</h1>
+    <div class="header-right">
+      <div class="nav">
+        <button onclick="prevMonth()">&#8249;</button>
+        <span class="month-label">${y}년 ${mo+1}월</span>
+        <button onclick="nextMonth()">&#8250;</button>
+      </div>
+    </div>
+  </div>
+  <div class="friend-banner">📅 약속이 있는 날짜만 표시됩니다. 세부 내용은 비공개예요.</div>
+  <div class="day-headers">
+    ${['일','월','화','수','목','금','토'].map(d=>`<div class="day-hd">${d}</div>`).join('')}
+  </div>
+  <div class="cal-grid" id="cal-grid-friend"></div>
+  <div class="legend">
+    <span><span class="ldot" style="background:var(--friend-text)"></span>약속 있음 (내용 비공개)</span>
+  </div>
+  ${renderFriendGrid(y, mo)}`;
+}
+
+function renderFriendGrid(y, mo) {
+  const first = new Date(y, mo, 1).getDay();
+  const days = new Date(y, mo+1, 0).getDate();
+  const prev = new Date(y, mo, 0).getDate();
+  let cells = [];
+  for (let i = first-1; i >= 0; i--) cells.push({d: prev-i, cur: false});
+  for (let d = 1; d <= days; d++) cells.push({d, cur: true});
+  while (cells.length % 7 !== 0) cells.push({d: cells.length-days-first+1, cur: false});
+
+  let html = '';
+  cells.forEach(({d, cur: isCur}) => {
+    const k = dkey(y, mo, d);
+    const evs = events[k] || [];
+    const isToday = isCur && y === today.getFullYear() && mo === today.getMonth() && d === today.getDate();
+    let cls = 'cal-day' + (isCur ? '' : ' other-month') + (isToday ? ' today' : '');
+    let pills = evs.length > 0 ? `<div class="pill friend">약속 있음</div>` : '';
+    html += `<div class="${cls}" style="cursor:default"><div class="day-num">${d}</div>${pills}</div>`;
+  });
+  setTimeout(() => {
+    const g = document.getElementById('cal-grid-friend');
+    if (g) g.innerHTML = html;
+  }, 0);
+  return '';
+}
+
+function prevMonth() { cur = new Date(cur.getFullYear(), cur.getMonth()-1, 1); render(); }
+function nextMonth() { cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1); render(); }
+
+function renderCal() {
+  const y = cur.getFullYear(), mo = cur.getMonth();
+  document.getElementById('month-label').textContent = `${y}년 ${mo+1}월`;
+  const grid = document.getElementById('cal-grid');
+  const first = new Date(y, mo, 1).getDay();
+  const days = new Date(y, mo+1, 0).getDate();
+  const prev = new Date(y, mo, 0).getDate();
+  let cells = [];
+  for (let i = first-1; i >= 0; i--) cells.push({d: prev-i, cur: false});
+  for (let d = 1; d <= days; d++) cells.push({d, cur: true});
+  while (cells.length % 7 !== 0) cells.push({d: cells.length-days-first+1, cur: false});
+
+  grid.innerHTML = '';
+  cells.forEach(({d, cur: isCur}) => {
+    const div = document.createElement('div');
+    const k = dkey(y, mo, d);
+    const evs = events[k] || [];
+    const isToday = isCur && y === today.getFullYear() && mo === today.getMonth() && d === today.getDate();
+    div.className = 'cal-day' + (isCur ? '' : ' other-month') + (isToday ? ' today' : '');
+
+    const num = document.createElement('div');
+    num.className = 'day-num'; num.textContent = d; div.appendChild(num);
+
+    evs.slice(0, 2).forEach(ev => {
+      const t = ev.type || 'other';
+      const p = document.createElement('div');
+      p.className = `pill ${t}`;
+      p.innerHTML = `<span class="pill-dot"></span><span>${ev.name}</span>`;
+      div.appendChild(p);
+    });
+    if (evs.length > 2) {
+      const m = document.createElement('div');
+      m.className = 'pill more'; m.textContent = `+${evs.length-2}개`;
+      div.appendChild(m);
+    }
+
+    if (isCur) {
+      const hint = document.createElement('span');
+      hint.className = 'add-hint'; hint.textContent = '+ 추가'; div.appendChild(hint);
+      div.onclick = () => openModal(y, mo, d);
+    }
+    grid.appendChild(div);
+  });
+}
+
+function handlePw() {
+  const val = (document.getElementById('pw-input').value || '').trim();
+  if (!val) return;
+  if (!pw) { pw = val; savePw(pw); window._unlocked = true; render(); }
+  else if (val === pw) { window._unlocked = true; render(); }
+  else { document.getElementById('pw-err').style.display = 'block'; }
+}
+
+function lock() { window._unlocked = false; render(); }
+
+function setMode(m) {
+  mode = m;
+  if (m === 'friend') { render(); }
+  else { window._unlocked = true; render(); }
+}
+
+function openModal(y, mo, d) {
+  const k = dkey(y, mo, d);
+  const evs = events[k] || [];
+  selectedType = 'lunch';
+
+  let evListHTML = '';
+  if (evs.length > 0) {
+    evListHTML = `<div class="ev-list-section"><div class="ev-list-label">등록된 일정</div>`
+      + evs.map((ev, i) => {
+          const t = ev.type || 'other';
+          return `<div class="ev-item"><div class="ev-item-left"><span class="pill-dot" style="background:var(--${t}-dot);width:7px;height:7px;border-radius:50%;flex-shrink:0"></span><span>${ev.name}</span></div><button class="ev-del" onclick="deleteEvent('${k}',${i})">×</button></div>`;
+        }).join('')
+      + `</div>`;
+  }
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.id = 'modal-backdrop';
+  backdrop.onclick = e => { if (e.target === backdrop) closeModal(); };
+  backdrop.innerHTML = `
+    <div class="modal">
+      <h3>${mo+1}월 ${d}일 일정 추가</h3>
+      <div class="type-row">
+        <button class="type-chip sel-lunch" id="chip-lunch" onclick="selType('lunch')">🌤 점심</button>
+        <button class="type-chip" id="chip-dinner" onclick="selType('dinner')">🌙 저녁</button>
+        <button class="type-chip" id="chip-other" onclick="selType('other')">📌 기타</button>
+      </div>
+      <input type="text" id="ev-name" placeholder="일정 제목" />
+      <textarea id="ev-note" placeholder="메모 (나에게만 보임)"></textarea>
+      ${evListHTML}
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal()">취소</button>
+        <button class="btn-dark" onclick="saveEvent('${k}')">저장</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  activeModal = backdrop;
+  setTimeout(() => document.getElementById('ev-name').focus(), 80);
+  document.getElementById('ev-name').addEventListener('keydown', e => { if (e.key === 'Enter') saveEvent(k); });
+}
+
+function selType(t) {
+  selectedType = t;
+  ['lunch','dinner','other'].forEach(tp => {
+    const c = document.getElementById('chip-'+tp);
+    if (c) c.className = 'type-chip' + (tp === t ? ' sel-'+tp : '');
+  });
+}
+
+function saveEvent(k) {
+  const name = (document.getElementById('ev-name').value || '').trim();
+  if (!name) return;
+  if (!events[k]) events[k] = [];
+  events[k].push({ name, type: selectedType, note: (document.getElementById('ev-note').value || '').trim() });
+  closeModal(); saveData(); renderCal();
+}
+
+function deleteEvent(k, i) {
+  events[k].splice(i, 1);
+  if (events[k].length === 0) delete events[k];
+  closeModal(); saveData(); renderCal();
+}
+
+function closeModal() {
+  if (activeModal) { activeModal.remove(); activeModal = null; }
+}
+
+function showShare() {
+  const url = window.location.href.replace(/\?.*$/, '') + '?view=friend';
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.onclick = e => { if (e.target === backdrop) { backdrop.remove(); activeModal = null; } };
+  backdrop.innerHTML = `
+    <div class="share-card">
+      <h2>친구에게 공유하기 🔗</h2>
+      <p>아래 링크를 친구에게 보내세요.<br>약속이 있는 날짜만 보이고 내용은 비공개예요.</p>
+      <div class="copy-row">
+        <input type="text" id="share-url" value="${url}" readonly />
+        <button onclick="copyLink()">복사</button>
+      </div>
+      <button class="share-back" onclick="this.closest('.modal-backdrop').remove()">← 돌아가기</button>
+    </div>`;
+  document.body.appendChild(backdrop);
+  activeModal = backdrop;
+}
+
+function copyLink() {
+  const el = document.getElementById('share-url');
+  el.select(); document.execCommand('copy');
+  const btn = el.nextElementSibling;
+  const orig = btn.textContent; btn.textContent = '복사됨!';
+  setTimeout(() => btn.textContent = orig, 1800);
+}
+
+loadData();
+const params = new URLSearchParams(window.location.search);
+if (params.get('view') === 'friend') { mode = 'friend'; }
+render();
+</script>
+</body>
+</html>
