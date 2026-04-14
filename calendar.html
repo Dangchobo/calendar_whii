@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🗓️ Whii 캘린더</title>
+<link href="https://fonts.googleapis.com/css2?family=Gmarket+Sans:wght@300;500;700&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #f7f5f0; --surface: #ffffff; --border: #e8e4dc; --border-hover: #cfc8bb;
+  --text: #1a1714; --text-2: #6b6560; --text-3: #aaa49c; --accent: #2d2a26;
+  --lunch-bg: #fff8ee; --lunch-dot: #e8940a; --lunch-text: #7a4d05;
+  --dinner-bg: #f0eeff; --dinner-dot: #6c5ce7; --dinner-text: #3d2fb0;
+  --other-bg: #edfaf4; --other-dot: #00b87a; --other-text: #056b47;
+  --holiday-color: #c0392b; --radius: 10px; --radius-sm: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.app { max-width: 780px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+.lock-screen { display: flex; align-items: center; justify-content: center; min-height: 80vh; }
+.lock-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem 2rem; width: 100%; max-width: 360px; text-align: center; }
+.lock-icon { width: 48px; height: 48px; border: 2px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; font-size: 20px; }
+.lock-card h1 { font-family: 'Gmarket Sans', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: .4rem; letter-spacing: -.5px; }
+.lock-card p { font-size: 13px; color: var(--text-2); margin-bottom: 1.75rem; line-height: 1.6; }
+.field input { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); outline: none; transition: border-color .15s; margin-bottom: .75rem; }
+.field input:focus { border-color: var(--accent); }
+.err-msg { font-size: 12px; color: #c0392b; margin-bottom: .75rem; display: none; }
+.btn-primary { width: 100%; padding: 11px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-family: 'Gmarket Sans', sans-serif; font-weight: 500; cursor: pointer; }
+.loading-screen { display: flex; align-items: center; justify-content: center; min-height: 60vh; flex-direction: column; gap: 12px; }
+.spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-screen p { font-size: 13px; color: var(--text-3); }
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; }
+.cal-header h1 { font-family: 'Gmarket Sans', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -1px; }
+.header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.nav { display: flex; align-items: center; gap: 8px; }
+.nav button { width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--text-2); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; transition: border-color .15s; }
+.nav button:hover { border-color: var(--border-hover); }
+.month-label { font-family: 'Gmarket Sans', sans-serif; font-size: 15px; font-weight: 500; min-width: 90px; text-align: center; }
+.mode-toggle { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.mode-btn { padding: 6px 14px; font-size: 12px; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; background: none; border: none; color: var(--text-2); transition: all .12s; }
+.mode-btn.active { background: var(--accent); color: #fff; }
+.icon-btn { width: 32px; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-2); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: border-color .15s; }
+.icon-btn:hover { border-color: var(--border-hover); }
+.day-headers { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+.day-hd { text-align: center; font-size: 11px; color: var(--text-3); padding: 4px 0; font-weight: 500; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day { min-height: 84px; border: 1px solid var(--border); border-radius: var(--radius); padding: 6px; cursor: pointer; background: var(--surface); position: relative; transition: border-color .15s; overflow: hidden; }
+.cal-day:hover:not(.other-month) { border-color: var(--border-hover); }
+.cal-day.other-month { opacity: .28; cursor: default; background: none; border-color: transparent; }
+.cal-day.today { border-color: var(--accent); }
+.cal-day.today .day-num { background: var(--accent); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.day-num { font-size: 11px; color: var(--text-2); margin-bottom: 2px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: 500; }
+.day-num.is-holiday { color: #c0392b; }
+.day-num.is-saturday { color: #2471a3; }
+.holiday-label { font-size: 9px; color: var(--holiday-color); font-weight: 500; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.add-hint { position: absolute; bottom: 4px; right: 6px; font-size: 10px; color: var(--text-3); opacity: 0; transition: opacity .12s; }
+.cal-day:hover:not(.other-month) .add-hint { opacity: 1; }
+.pill { font-size: 10px; padding: 2px 5px; border-radius: 20px; margin-bottom: 2px; display: flex; align-items: center; gap: 3px; overflow: hidden; max-width: 100%; }
+.pill span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.pill.p-lunch { background: var(--lunch-bg); color: var(--lunch-text); }
+.pill.p-lunch .pdot { background: var(--lunch-dot); }
+.pill.p-dinner { background: var(--dinner-bg); color: var(--dinner-text); }
+.pill.p-dinner .pdot { background: var(--dinner-dot); }
+.pill.p-other { background: var(--other-bg); color: var(--other-text); }
+.pill.p-other .pdot { background: var(--other-dot); }
+.pill.p-booking { background: #eaf4fd; color: #1a5276; }
+.pill.p-booking .pdot { background: #2471a3; }
+.pill.p-more { background: var(--bg); color: var(--text-3); font-size: 9px; }
+.legend { display: flex; gap: 14px; margin-top: 1rem; font-size: 12px; color: var(--text-2); flex-wrap: wrap; }
+.ldot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+.save-status { font-size: 11px; color: var(--text-3); text-align: right; margin-top: 6px; min-height: 14px; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(26,23,20,.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem 1.5rem; width: 100%; max-width: 340px; animation: fadeUp .18s ease; max-height: 88vh; overflow-y: auto; }
+@keyframes fadeUp { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal h3 { font-family: 'Gmarket Sans', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: .25rem; letter-spacing: -.3px; }
+.modal-sub { font-size: 12px; color: var(--text-3); margin-bottom: 1rem; }
+.type-row { display: flex; gap: 6px; margin-bottom: .75rem; }
+.type-chip { flex: 1; padding: 7px 0; font-size: 12px; border-radius: var(--radius-sm); cursor: pointer; text-align: center; border: 1px solid var(--border); background: none; color: var(--text-2); font-family: 'Noto Sans KR', sans-serif; transition: all .12s; }
+.type-chip.sel-lunch { background: var(--lunch-bg); color: var(--lunch-text); border-color: var(--lunch-dot); }
+.type-chip.sel-dinner { background: var(--dinner-bg); color: var(--dinner-text); border-color: var(--dinner-dot); }
+.type-chip.sel-other { background: var(--other-bg); color: var(--other-text); border-color: var(--other-dot); }
+.modal input, .modal textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; background: var(--bg); color: var(--text); outline: none; margin-bottom: .65rem; transition: border-color .15s; }
+.modal input:focus, .modal textarea:focus { border-color: var(--accent); }
+.modal textarea { height: 58px; resize: none; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: .75rem; }
+.btn-ghost { padding: 7px 16px; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text-2); cursor: pointer; font-family: inherit; }
+.btn-ghost:hover { border-color: var(--border-hover); }
+.btn-dark { padding: 7px 16px; font-size: 13px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); cursor: pointer; font-family: 'Gmarket Sans', sans-serif; font-weight: 500; }
+.btn-blue { padding: 7px 16px; font-size: 13px; background: #2471a3; color: #fff; border: none; border-radius: var(--radius-sm); cursor: pointer; font-family: 'Gmarket Sans', sans-serif; font-weight: 500; }
+.section-label { font-size: 11px; color: var(--text-3); font-weight: 500; margin-bottom: 6px; }
+.section-gap { margin-top: .85rem; border-top: 1px solid var(--border); padding-top: .7rem; }
+.ev-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 9px; border-radius: var(--radius-sm); margin-bottom: 3px; background: var(--bg); font-size: 13px; gap: 6px; }
+.ev-item-left { display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden; }
+.ev-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-del { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 15px; line-height: 1; flex-shrink: 0; padding: 0 2px; }
+.ev-del:hover { color: #c0392b; }
+.badge { font-size: 10px; background: #eaf4fd; color: #1a5276; padding: 1px 6px; border-radius: 10px; flex-shrink: 0; }
+.taken-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--radius-sm); margin-bottom: 4px; font-size: 13px; }
+.taken-row.t-lunch { background: var(--lunch-bg); color: var(--lunch-text); }
+.taken-row.t-dinner { background: var(--dinner-bg); color: var(--dinner-text); }
+.taken-row.t-other { background: var(--other-bg); color: var(--other-text); }
+.booked-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-radius: var(--radius-sm); margin-bottom: 4px; background: #eaf4fd; color: #1a5276; font-size: 13px; }
+.friend-banner { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .75rem 1rem; margin-bottom: 1.25rem; font-size: 13px; color: var(--text-2); text-align: center; line-height: 1.7; }
+.copy-row { display: flex; gap: 8px; }
+.copy-row input { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; background: var(--bg); color: var(--text-2); font-family: inherit; outline: none; }
+.copy-row button { padding: 0 16px; font-size: 13px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); cursor: pointer; font-family: 'Gmarket Sans', sans-serif; white-space: nowrap; }
+.share-back { width: 100%; margin-top: .85rem; padding: 9px; background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-2); cursor: pointer; font-family: inherit; }
+@media (max-width: 500px) {
+  .cal-day { min-height: 64px; }
+  .pill { font-size: 9px; padding: 1px 4px; }
+  .holiday-label { font-size: 8px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <p>캘린더 불러오는 중...</p>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB2mfo0KnilUaOuGjQVhg2fMtppnINOyks",
+  authDomain: "calendar-dcca0.firebaseapp.com",
+  projectId: "calendar-dcca0",
+  storageBucket: "calendar-dcca0.firebasestorage.app",
+  messagingSenderId: "825274041321",
+  appId: "1:825274041321:web:f24cb4482f768b25e84178"
+};
+
+const fireApp = initializeApp(firebaseConfig);
+const db = getFirestore(fireApp);
+const CAL_DOC = doc(db, 'calendar', 'main');
+const PW_DOC  = doc(db, 'calendar', 'config');
+
+const today = new Date();
+let cur = new Date(today.getFullYear(), today.getMonth(), 1);
+let mode = 'mine';
+let events = {};
+let pw = null;
+let selType_val = 'lunch';
+let activeModal = null;
+let saveTimer = null;
+let unsubscribe = null;
+
+/* 공휴일 */
+function getHolidays(year) {
+  const h = {};
+  [['01-01','새해'],['03-01','삼일절'],['05-05','어린이날'],['06-06','현충일'],
+   ['08-15','광복절'],['10-03','개천절'],['10-09','한글날'],['12-25','크리스마스']]
+    .forEach(([md, n]) => h[`${year}-${md}`] = n);
+  const lunar = {
+    2024:[['02-09','설연휴'],['02-10','설날'],['02-11','설연휴'],['02-12','대체공휴일'],['05-15','부처님오신날'],['09-16','추석연휴'],['09-17','추석'],['09-18','추석연휴']],
+    2025:[['01-28','설연휴'],['01-29','설날'],['01-30','설연휴'],['05-05','어린이날·부처님오신날'],['10-05','추석연휴'],['10-06','추석'],['10-07','추석연휴'],['10-08','대체공휴일']],
+    2026:[['02-16','설연휴'],['02-17','설날'],['02-18','설연휴'],['05-24','부처님오신날'],['09-24','추석연휴'],['09-25','추석'],['09-26','추석연휴']],
+    2027:[['02-05','설연휴'],['02-06','설날'],['02-07','설연휴'],['05-13','부처님오신날'],['09-14','추석연휴'],['09-15','추석'],['09-16','추석연휴']],
+  };
+  (lunar[year]||[]).forEach(([md, n]) => h[`${year}-${md}`] = n);
+  return h;
+}
+
+function dkey(y, m, d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+async function loadPw() {
+  try { const s = await getDoc(PW_DOC); if (s.exists()) pw = s.data().pw || null; } catch(e) { pw = null; }
+}
+async function savePwToCloud(p) { await setDoc(PW_DOC, { pw: p }, { merge: true }); }
+async function saveEvents() {
+  try { await setDoc(CAL_DOC, { data: JSON.stringify(events) }); showStatus('저장됨'); }
+  catch(e) { showStatus('저장 실패'); }
+}
+function startRealtime() {
+  if (unsubscribe) unsubscribe();
+  unsubscribe = onSnapshot(CAL_DOC, (snap) => {
+    if (snap.exists()) { try { events = JSON.parse(snap.data().data || '{}'); } catch(e) { events = {}; } }
+    else { events = {}; }
+    if (document.getElementById('cal-grid')) renderGrid(mode === 'friend');
+  });
+}
+function showStatus(msg) {
+  const el = document.getElementById('save-status');
+  if (el) { el.textContent = msg; clearTimeout(saveTimer); saveTimer = setTimeout(() => el.textContent = '', 2000); }
+}
+
+async function init() {
+  await loadPw();
+  startRealtime();
+  if (new URLSearchParams(window.location.search).get('view') === 'friend') mode = 'friend';
+  render();
+}
+
+function render() {
+  const app = document.getElementById('app');
+  if (mode === 'friend') {
+    app.innerHTML = shell(true); bindNav(true); renderGrid(true);
+  } else if (!window._unlocked) {
+    app.innerHTML = lockHTML();
+    document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key==='Enter') handlePw(); });
+  } else {
+    app.innerHTML = shell(false); bindNav(false); renderGrid(false);
+  }
+}
+
+function lockHTML() {
+  return `<div class="lock-screen"><div class="lock-card">
+    <div class="lock-icon">🔐</div>
+    <h1>🗓️ Whii 캘린더</h1>
+    <p>비밀번호를 설정하거나 입력해서<br>캘린더를 시작하세요.</p>
+    <div class="field"><input type="password" id="pw-input" placeholder="비밀번호 입력" /></div>
+    <div class="err-msg" id="pw-err">비밀번호가 틀렸어요.</div>
+    <button class="btn-primary" onclick="handlePw()">시작하기</button>
+  </div></div>`;
+}
+
+function shell(isFriend) {
+  const controls = isFriend ? '' : `
+    <div class="mode-toggle">
+      <button class="mode-btn active">내 캘린더</button>
+      <button class="mode-btn" onclick="setMode('friend')">친구 뷰</button>
+    </div>
+    <button class="icon-btn" onclick="showShare()" title="공유">🔗</button>
+    <button class="icon-btn" onclick="lock()" title="잠금">🔒</button>`;
+  const banner = isFriend ? `<div class="friend-banner">📅 약속이 있는 날짜에 카테고리가 표시돼요.<br>날짜를 눌러서 예약을 추가할 수 있어요!</div>` : '';
+  const friendLegend = isFriend ? `<span><span class="ldot" style="background:#2471a3"></span>내 예약</span>` : '';
+  const popup = isFriend && !localStorage.getItem('whii_no_popup') ? `<div id="whii-popup" style="position:fixed;inset:0;background:rgba(26,23,20,.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem"><div style="background:#fff;border-radius:20px;border:1px solid #e8e4dc;padding:2rem 1.75rem;width:100%;max-width:300px;text-align:center"><div style="font-size:36px;margin-bottom:1rem;line-height:1">🗓️</div><p style="font-size:14px;color:#6b6560;line-height:2.1;margin-bottom:1.75rem">하이하이 👋<br>캘린더에 시간 되는 날짜 눌러주삼ㅋ<br>놀자 ㅎ</p><button onclick="document.getElementById('whii-popup').style.display='none'" style="width:100%;padding:11px;background:#2d2a26;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:500;margin-bottom:.6rem">ㅇㅇ 확인 👍</button><button onclick="localStorage.setItem('whii_no_popup','1');document.getElementById('whii-popup').style.display='none'" style="width:100%;padding:9px;background:none;color:#aaa49c;border:none;font-size:12px;cursor:pointer">다시 보지 않기</button></div></div>` : '';
+  return `
+  ${popup}
+  <div class="cal-header">
+    <h1>🗓️ Whii 캘린더</h1>
+    <div class="header-right">
+      <div class="nav">
+        <button id="prev">&#8249;</button>
+        <span class="month-label" id="month-label"></span>
+        <button id="next">&#8250;</button>
+      </div>
+      ${controls}
+    </div>
+  </div>
+  ${banner}
+  <div class="day-headers">${['일','월','화','수','목','금','토'].map(d=>`<div class="day-hd">${d}</div>`).join('')}</div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="legend">
+    <span><span class="ldot" style="background:var(--lunch-dot)"></span>점심</span>
+    <span><span class="ldot" style="background:var(--dinner-dot)"></span>저녁</span>
+    <span><span class="ldot" style="background:var(--other-dot)"></span>기타</span>
+    ${friendLegend}
+    <span><span class="ldot" style="background:var(--holiday-color)"></span>공휴일</span>
+  </div>
+  <div class="save-status" id="save-status"></div>`;
+}
+
+function bindNav(isFriend) {
+  document.getElementById('prev').onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth()-1, 1); renderGrid(isFriend); };
+  document.getElementById('next').onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1); renderGrid(isFriend); };
+}
+
+function renderGrid(isFriend) {
+  const y = cur.getFullYear(), mo = cur.getMonth();
+  document.getElementById('month-label').textContent = `${y}년 ${mo+1}월`;
+  const grid = document.getElementById('cal-grid');
+  const holidays = getHolidays(y);
+  const first = new Date(y, mo, 1).getDay();
+  const days  = new Date(y, mo+1, 0).getDate();
+  const prevD = new Date(y, mo, 0).getDate();
+  let cells = [];
+  for (let i = first-1; i >= 0; i--) cells.push({d: prevD-i, cur: false});
+  for (let d = 1; d <= days; d++) cells.push({d, cur: true});
+  while (cells.length % 7 !== 0) cells.push({d: cells.length-days-first+1, cur: false});
+  grid.innerHTML = '';
+  cells.forEach(({d, cur: isCur}, idx) => {
+    const colDow = idx % 7;
+    const div = document.createElement('div');
+    const k = dkey(y, mo, d);
+    const evs = events[k] || [];
+    const isToday = isCur && y===today.getFullYear() && mo===today.getMonth() && d===today.getDate();
+    const holiday = isCur ? holidays[k] : null;
+    div.className = 'cal-day' + (isCur ? '' : ' other-month') + (isToday ? ' today' : '');
+    const num = document.createElement('div');
+    num.className = 'day-num' + (isCur && (holiday||colDow===0) ? ' is-holiday' : isCur && colDow===6 ? ' is-saturday' : '');
+    num.textContent = d; div.appendChild(num);
+    if (holiday) { const hl = document.createElement('div'); hl.className = 'holiday-label'; hl.textContent = holiday; div.appendChild(hl); }
+    if (isCur) {
+      const ownerEvs = evs.filter(e => !e.isBooking);
+      const bookings = evs.filter(e => e.isBooking);
+      if (!isFriend) {
+        let shown = 0;
+        ownerEvs.slice(0, 2).forEach(ev => { addPill(div, `p-${ev.type||'other'}`, ev.name); shown++; });
+        bookings.slice(0, 1).forEach(ev => { addPill(div, 'p-booking', `예약: ${ev.name}`); shown++; });
+        const total = ownerEvs.length + bookings.length;
+        if (total > shown) addPill(div, 'p-more', `+${total-shown}개`);
+        const hint = document.createElement('span'); hint.className = 'add-hint'; hint.textContent = '+ 추가'; div.appendChild(hint);
+        div.onclick = () => openOwnerModal(y, mo, d);
+      } else {
+        const types = {lunch: 0, dinner: 0, other: 0};
+        ownerEvs.forEach(ev => { const t = ev.type||'other'; if (t in types) types[t]++; else types.other++; });
+        if (types.lunch)  addPill(div, 'p-lunch',  '점심 약속 있음');
+        if (types.dinner) addPill(div, 'p-dinner', '저녁 약속 있음');
+        if (types.other)  addPill(div, 'p-other',  '기타 약속 있음');
+        bookings.forEach(() => addPill(div, 'p-booking', '내 예약'));
+        const hint = document.createElement('span'); hint.className = 'add-hint'; hint.textContent = '+ 예약'; div.appendChild(hint);
+        div.onclick = () => openFriendModal(y, mo, d);
+      }
+    }
+    grid.appendChild(div);
+  });
+}
+
+function addPill(parent, cls, text) {
+  const p = document.createElement('div');
+  p.className = `pill ${cls}`;
+  p.innerHTML = `<span class="pdot"></span><span>${text}</span>`;
+  parent.appendChild(p);
+}
+
+async function handlePw() {
+  const val = (document.getElementById('pw-input').value || '').trim();
+  if (!val) return;
+  if (!pw) { pw = val; await savePwToCloud(pw); window._unlocked = true; render(); }
+  else if (val === pw) { window._unlocked = true; render(); }
+  else { document.getElementById('pw-err').style.display = 'block'; }
+}
+function lock() { window._unlocked = false; render(); }
+function setMode(m) { mode = m; render(); }
+
+function openOwnerModal(y, mo, d) {
+  const k = dkey(y, mo, d);
+  const evs = events[k] || [];
+  selType_val = 'lunch';
+  const ownerEvs = evs.filter(e => !e.isBooking);
+  const bookings  = evs.filter(e => e.isBooking);
+  let listHTML = '';
+  if (ownerEvs.length) {
+    listHTML += `<div class="section-gap"><div class="section-label">내 일정</div>`;
+    listHTML += ownerEvs.map(ev => {
+      const i = evs.indexOf(ev);
+      const c = ev.type==='lunch'?'var(--lunch-dot)':ev.type==='dinner'?'var(--dinner-dot)':'var(--other-dot)';
+      return `<div class="ev-item"><div class="ev-item-left"><span class="pdot" style="background:${c};width:7px;height:7px;border-radius:50%;flex-shrink:0"></span><span>${ev.name}</span></div><button class="ev-del" onclick="delEv('${k}',${i})">×</button></div>`;
+    }).join('') + '</div>';
+  }
+  if (bookings.length) {
+    listHTML += `<div class="section-gap"><div class="section-label">친구 예약</div>`;
+    listHTML += bookings.map(ev => {
+      const i = evs.indexOf(ev);
+      return `<div class="ev-item"><div class="ev-item-left"><span class="pdot" style="background:#2471a3;width:7px;height:7px;border-radius:50%;flex-shrink:0"></span><span>${ev.name}</span><span class="badge">예약</span></div><button class="ev-del" onclick="delEv('${k}',${i})">×</button></div>`;
+    }).join('') + '</div>';
+  }
+  spawn(`
+    <h3>${mo+1}월 ${d}일</h3>
+    <p class="modal-sub">일정을 추가하세요.</p>
+    <div class="type-row">
+      <button class="type-chip sel-lunch" id="chip-lunch" onclick="pickType('lunch')">🌤 점심</button>
+      <button class="type-chip" id="chip-dinner" onclick="pickType('dinner')">🌙 저녁</button>
+      <button class="type-chip" id="chip-other" onclick="pickType('other')">📌 기타</button>
+    </div>
+    <input type="text" id="ev-name" placeholder="일정 제목" />
+    <textarea id="ev-note" placeholder="메모 (나에게만 보임)"></textarea>
+    ${listHTML}
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn-dark" onclick="saveEv('${k}')">저장</button>
+    </div>`);
+  setTimeout(() => document.getElementById('ev-name')?.focus(), 80);
+  document.getElementById('ev-name')?.addEventListener('keydown', e => { if (e.key==='Enter') saveEv(k); });
+}
+
+function openFriendModal(y, mo, d) {
+  const k = dkey(y, mo, d);
+  const evs = events[k] || [];
+  const ownerEvs = evs.filter(e => !e.isBooking);
+  const myBookings = evs.filter(e => e.isBooking);
+  const types = {
+    lunch: ownerEvs.filter(e=>e.type==='lunch').length,
+    dinner: ownerEvs.filter(e=>e.type==='dinner').length,
+    other: ownerEvs.filter(e=>(e.type||'other')==='other').length
+  };
+  let takenHTML = '';
+  if (ownerEvs.length) {
+    takenHTML = `<div class="section-label" style="margin-bottom:6px">이 날의 약속</div>`;
+    if (types.lunch)  takenHTML += `<div class="taken-row t-lunch">🌤 점심 약속 있음</div>`;
+    if (types.dinner) takenHTML += `<div class="taken-row t-dinner">🌙 저녁 약속 있음</div>`;
+    if (types.other)  takenHTML += `<div class="taken-row t-other">📌 기타 약속 있음</div>`;
+  }
+  let myHTML = '';
+  if (myBookings.length) {
+    myHTML = `<div class="section-gap"><div class="section-label">내 예약</div>`;
+    myHTML += myBookings.map(ev => {
+      const i = evs.indexOf(ev);
+      return `<div class="booked-row"><span>✅ ${ev.name}</span><button class="ev-del" style="color:#1a5276" onclick="delEv('${k}',${i})">취소</button></div>`;
+    }).join('') + '</div>';
+  }
+  spawn(`
+    <h3>${mo+1}월 ${d}일</h3>
+    <p class="modal-sub">예약 이름을 입력하고 저장하세요.</p>
+    ${takenHTML}
+    ${myHTML}
+    <div class="${ownerEvs.length||myBookings.length?'section-gap':''}">
+      ${ownerEvs.length||myBookings.length?'<div class="section-label">예약 추가</div>':''}
+      <input type="text" id="bk-name" placeholder="이름 또는 닉네임" />
+      <textarea id="bk-note" placeholder="메모 (선택사항)"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">닫기</button>
+      <button class="btn-blue" onclick="saveBooking('${k}')">예약하기</button>
+    </div>`);
+  setTimeout(() => document.getElementById('bk-name')?.focus(), 80);
+  document.getElementById('bk-name')?.addEventListener('keydown', e => { if (e.key==='Enter') saveBooking(k); });
+}
+
+function pickType(t) {
+  selType_val = t;
+  ['lunch','dinner','other'].forEach(tp => {
+    const c = document.getElementById('chip-'+tp);
+    if (c) c.className = 'type-chip' + (tp===t ? ' sel-'+tp : '');
+  });
+}
+async function saveEv(k) {
+  const name = (document.getElementById('ev-name')?.value||'').trim();
+  if (!name) return;
+  if (!events[k]) events[k] = [];
+  events[k].push({ name, type: selType_val, note: (document.getElementById('ev-note')?.value||'').trim() });
+  closeModal(); await saveEvents();
+}
+async function saveBooking(k) {
+  const name = (document.getElementById('bk-name')?.value||'').trim();
+  if (!name) return;
+  if (!events[k]) events[k] = [];
+  events[k].push({ name, isBooking: true, note: (document.getElementById('bk-note')?.value||'').trim() });
+  closeModal(); await saveEvents();
+}
+async function delEv(k, i) {
+  events[k].splice(i, 1);
+  if (!events[k].length) delete events[k];
+  closeModal(); await saveEvents();
+}
+
+function spawn(html) {
+  closeModal();
+  const bd = document.createElement('div');
+  bd.className = 'modal-backdrop';
+  bd.onclick = e => { if (e.target === bd) closeModal(); };
+  bd.innerHTML = `<div class="modal">${html}</div>`;
+  document.body.appendChild(bd);
+  activeModal = bd;
+}
+function closeModal() { if (activeModal) { activeModal.remove(); activeModal = null; } }
+
+function showShare() {
+  const url = window.location.href.replace(/\?.*$/, '') + '?view=friend';
+  spawn(`
+    <h3>친구에게 공유하기 🔗</h3>
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:1.25rem;line-height:1.6">
+      아래 링크를 친구에게 보내세요.<br>
+      점심·저녁·기타 카테고리는 보이지만 세부 내용은 비공개예요.<br>
+      친구도 날짜를 눌러 예약을 추가할 수 있어요.
+    </p>
+    <div class="copy-row">
+      <input type="text" id="share-url" value="${url}" readonly />
+      <button onclick="copyLink()">복사</button>
+    </div>
+    <button class="share-back" onclick="closeModal()">← 돌아가기</button>`);
+}
+function copyLink() {
+  const el = document.getElementById('share-url');
+  el.select(); document.execCommand('copy');
+  const btn = el.nextElementSibling;
+  const orig = btn.textContent; btn.textContent = '복사됨!';
+  setTimeout(() => btn.textContent = orig, 1800);
+}
+
+window.handlePw = handlePw;
+window.lock = lock;
+window.setMode = setMode;
+window.pickType = pickType;
+window.saveEv = saveEv;
+window.saveBooking = saveBooking;
+window.delEv = delEv;
+window.closeModal = closeModal;
+window.showShare = showShare;
+window.copyLink = copyLink;
+window.openOwnerModal = openOwnerModal;
+window.openFriendModal = openFriendModal;
+
+init();
+</script>
+</body>
+</html>
